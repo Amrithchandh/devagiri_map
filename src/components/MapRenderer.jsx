@@ -1,110 +1,214 @@
-import React from 'react';
-import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
-import { nodes, edges } from '../data/mapGraph';
+import React, { useEffect, useRef } from 'react';
+import { MapContainer, TileLayer, Polyline, Marker, Popup, CircleMarker, Circle, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import { nodes, edges, campusCenter } from '../data/mapGraph';
+
+// Fix Leaflet default icon path issue with bundlers
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
+
+// Custom gate icon (small dark blue circle with white text)
+function createGateIcon(label) {
+  return L.divIcon({
+    className: 'gate-marker',
+    html: `<div class="gate-icon">${label}</div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+  });
+}
+
+// Custom block icon (larger label)
+function createBlockIcon(label, isSelected) {
+  return L.divIcon({
+    className: 'block-marker',
+    html: `<div class="block-icon ${isSelected ? 'block-selected' : ''}">${label}</div>`,
+    iconSize: [140, 50],
+    iconAnchor: [70, 25],
+  });
+}
+
+// Custom live location icon (Google Maps style blue dot with heading cone)
+function createLiveIcon(heading) {
+  return L.divIcon({
+    className: 'live-location-marker',
+    html: `
+      <div class="live-outer-pulse"></div>
+      <div class="live-heading-cone" style="transform: rotate(${heading || 0}deg)"></div>
+      <div class="live-dot"></div>
+    `,
+    iconSize: [40, 40],
+    iconAnchor: [20, 20],
+  });
+}
+
+// Component to programmatically control the map (flyTo, setView, etc.)
+function MapController({ mapRef }) {
+  const map = useMap();
+  useEffect(() => {
+    if (mapRef) {
+      mapRef.current = map;
+    }
+  }, [map, mapRef]);
+  return null;
+}
+
+// Component to track user location and center on it
+function LocationFollower({ userLocation, shouldFollow }) {
+  const map = useMap();
+  useEffect(() => {
+    if (shouldFollow && userLocation) {
+      map.flyTo([userLocation.lat, userLocation.lng], 18, { duration: 0.8 });
+    }
+  }, [userLocation, shouldFollow, map]);
+  return null;
+}
 
 export default function MapRenderer({ pathNodes, destinationBlock, setTransformRef, svgLocation, heading }) {
+  const mapRef = useRef(null);
+
+  // Expose a ref-like API to App.jsx for recenter/zoom
+  useEffect(() => {
+    if (setTransformRef) {
+      setTransformRef.current = {
+        resetTransform: () => {
+          if (mapRef.current) {
+            mapRef.current.flyTo([campusCenter.lat, campusCenter.lng], 17, { duration: 0.8 });
+          }
+        },
+        flyToUser: (lat, lng) => {
+          if (mapRef.current) {
+            mapRef.current.flyTo([lat, lng], 18, { duration: 0.8 });
+          }
+        },
+        zoomToElement: (blockId) => {
+          const node = nodes[blockId];
+          if (node && mapRef.current) {
+            mapRef.current.flyTo([node.lat, node.lng], 18, { duration: 0.8 });
+          }
+        }
+      };
+    }
+  }, [setTransformRef]);
+
+  // Walkway edges as faint polylines
+  const walkwayLines = edges.map((edge, idx) => {
+    const n1 = nodes[edge.from];
+    const n2 = nodes[edge.to];
+    if (!n1 || !n2) return null;
+    return (
+      <Polyline
+        key={`edge-${idx}`}
+        positions={[[n1.lat, n1.lng], [n2.lat, n2.lng]]}
+        pathOptions={{ color: 'rgba(100,100,100,0.4)', weight: 2, dashArray: '6 4' }}
+      />
+    );
+  });
+
+  // Route path
+  const routeLine = pathNodes && pathNodes.length > 1 ? (
+    <Polyline
+      positions={pathNodes.map(n => [n.lat, n.lng])}
+      pathOptions={{ color: '#ef4444', weight: 5, dashArray: '10 6' }}
+      className="animated-route"
+    />
+  ) : null;
+
+  // Block markers
+  const blockMarkers = Object.values(nodes).filter(n => n.type === 'block').map(block => {
+    const isSelected = block.id === destinationBlock;
+    return (
+      <Marker
+        key={block.id}
+        position={[block.lat, block.lng]}
+        icon={createBlockIcon(block.label, isSelected)}
+      >
+        <Popup>{block.label}</Popup>
+      </Marker>
+    );
+  });
+
+  // Gate markers
+  const gateMarkers = Object.values(nodes).filter(n => n.type === 'gate').map(gate => (
+    <Marker
+      key={gate.id}
+      position={[gate.lat, gate.lng]}
+      icon={createGateIcon(gate.id)}
+    >
+      <Popup>{gate.label}</Popup>
+    </Marker>
+  ));
+
+  // Destination pulse marker
+  const destinationNode = destinationBlock ? nodes[destinationBlock] : null;
+  const destinationPulse = destinationNode ? (
+    <Circle
+      center={[destinationNode.lat, destinationNode.lng]}
+      radius={15}
+      pathOptions={{ color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.3, weight: 2 }}
+      className="pulse-circle"
+    />
+  ) : null;
+
+  // Live location marker
+  const liveMarker = svgLocation ? (
+    <>
+      <Circle
+        center={[svgLocation.lat, svgLocation.lng]}
+        radius={20}
+        pathOptions={{ color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.15, weight: 1 }}
+        className="accuracy-circle"
+      />
+      <Marker
+        position={[svgLocation.lat, svgLocation.lng]}
+        icon={createLiveIcon(heading)}
+        zIndexOffset={1000}
+      />
+    </>
+  ) : null;
+
   return (
     <div className="map-wrapper">
-      <TransformWrapper
-        initialScale={1}
-        minScale={0.5}
-        maxScale={4}
-        centerOnInit
-        ref={setTransformRef}
+      <MapContainer
+        center={[campusCenter.lat, campusCenter.lng]}
+        zoom={17}
+        minZoom={15}
+        maxZoom={20}
+        zoomControl={false}
+        attributionControl={false}
+        style={{ width: '100%', height: '100%' }}
       >
-        <TransformComponent wrapperClass="transform-wrapper" contentClass="transform-content">
-          <svg viewBox="0 0 1000 700" className="campus-map">
-            {/* Blueprint Background */}
-            <image href="/blueprint.jpg" width="1000" height="700" preserveAspectRatio="none" opacity="1" />
+        <MapController mapRef={mapRef} />
+        <LocationFollower userLocation={svgLocation} shouldFollow={!!svgLocation} />
 
-            {/* Render all walkway paths (faint dashed lines) */}
-            {edges.map((edge, idx) => {
-              const n1 = nodes[edge.from];
-              const n2 = nodes[edge.to];
-              if (!n1 || !n2) return null;
-              return (
-                <line 
-                  key={`edge-${idx}`}
-                  x1={n1.x} y1={n1.y} x2={n2.x} y2={n2.y}
-                  stroke="rgba(255,255,255,0.3)" strokeWidth="4"
-                  strokeDasharray="4 4"
-                />
-              );
-            })}
+        {/* Google Maps style tile layer */}
+        <TileLayer
+          url="https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+          subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
+          maxZoom={20}
+        />
 
-            {/* Render Blocks */}
-            {Object.values(nodes).filter(n => n.type === 'block').map(block => {
-              const isSelected = block.id === destinationBlock;
-              
-              return (
-                <g key={block.id} id={`block-${block.id}`} className={`block-group ${isSelected ? 'selected-block' : ''}`}>
-                  <rect 
-                    x={block.x - 70} y={block.y - 25} 
-                    width="140" height="50" 
-                    fill={isSelected ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.1)'}
-                    rx="6"
-                    stroke={isSelected ? '#ef4444' : 'rgba(255,255,255,0.8)'}
-                    strokeWidth={isSelected ? '4' : '2'}
-                  />
-                  <text x={block.x} y={block.y + 5} fill="white" fontSize="12" textAnchor="middle" fontWeight="bold">
-                    {block.label}
-                  </text>
-                  {isSelected && (
-                    <circle cx={block.x} cy={block.y - 45} r="8" fill="#ef4444" className="pulse-marker" />
-                  )}
-                </g>
-              );
-            })}
+        {/* Walkway edges */}
+        {walkwayLines}
 
-            <defs>
-              <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5"
-                markerWidth="6" markerHeight="6"
-                orient="auto-start-reverse">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#ffffff" />
-              </marker>
-            </defs>
+        {/* Route path */}
+        {routeLine}
 
-            {/* Render highlighted route path */}
-            {pathNodes && pathNodes.length > 1 && (
-              <polyline
-                points={pathNodes.map(n => `${n.x},${n.y}`).join(' ')}
-                fill="none"
-                stroke="#ef4444"
-                strokeWidth="6"
-                strokeDasharray="10 6"
-                className="animated-path"
-                markerMid="url(#arrow)"
-                markerEnd="url(#arrow)"
-              />
-            )}
+        {/* Block markers */}
+        {blockMarkers}
 
-            {/* Render Gates */}
-            {Object.values(nodes).filter(n => n.type === 'gate').map(gate => (
-              <g key={gate.id}>
-                <circle cx={gate.x} cy={gate.y} r="14" fill="rgba(24,65,121,0.8)" stroke="white" strokeWidth="2" />
-                <text x={gate.x} y={gate.y + 4} fill="white" fontSize="9" textAnchor="middle" fontWeight="bold">
-                  {gate.id}
-                </text>
-              </g>
-            ))}
+        {/* Gate markers */}
+        {gateMarkers}
 
-            {/* Render User's Live Location */}
-            {svgLocation && (
-              <g className="live-location" transform={`translate(${svgLocation.x}, ${svgLocation.y})`}>
-                {/* Accuracy Radius */}
-                <circle cx="0" cy="0" r="16" fill="rgba(59, 130, 246, 0.3)" className="pulse-marker" />
-                
-                {/* Heading Arrow & Center Dot */}
-                <g transform={`rotate(${heading || 0})`}>
-                  {/* The white arrow pointing in the direction of the heading */}
-                  <polygon points="-5,2 0,-8 5,2 0,-1" fill="#ffffff" stroke="#3b82f6" strokeWidth="1" />
-                </g>
-                <circle cx="0" cy="0" r="4" fill="#3b82f6" />
-              </g>
-            )}
-          </svg>
-        </TransformComponent>
-      </TransformWrapper>
+        {/* Destination pulse */}
+        {destinationPulse}
+
+        {/* Live location */}
+        {liveMarker}
+      </MapContainer>
     </div>
   );
 }

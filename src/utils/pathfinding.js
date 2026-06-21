@@ -51,19 +51,21 @@ export function findShortestPath(startNodeId, endNodeId) {
     }
   }
 
-  // Backtrack to build path
+  // Backtrack to build path — now returns [{lat, lng}, ...]
   const path = [];
   let u = endNodeId;
   if (previous[u] !== null || u === startNodeId) {
     while (u !== null) {
-      path.unshift(nodes[u]);
+      const node = nodes[u];
+      path.unshift({ lat: node.lat, lng: node.lng });
       u = previous[u];
     }
   }
   return path;
 }
 
-export function findNearestNode(x, y) {
+// Find nearest node to a given GPS coordinate (lat, lng)
+export function findNearestNode(lat, lng) {
   let nearestId = null;
   let minDistance = Infinity;
 
@@ -71,9 +73,9 @@ export function findNearestNode(x, y) {
   Object.keys(nodes).forEach(nodeId => {
     const node = nodes[nodeId];
     if (node.type === 'gate' || node.type === 'waypoint') {
-      const dx = node.x - x;
-      const dy = node.y - y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
+      const dlat = node.lat - lat;
+      const dlng = node.lng - lng;
+      const dist = Math.sqrt(dlat * dlat + dlng * dlng);
       if (dist < minDistance) {
         minDistance = dist;
         nearestId = nodeId;

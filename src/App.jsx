@@ -3,7 +3,6 @@ import TopBar from './components/TopBar';
 import BottomSheet from './components/BottomSheet';
 import MapRenderer from './components/MapRenderer';
 import { findShortestPath, findNearestNode } from './utils/pathfinding';
-import { latLngToSVG } from './data/mapGraph';
 
 function App() {
   const [courseType, setCourseType] = useState('Aided'); // 'Aided' or 'Self Financing'
@@ -14,8 +13,8 @@ function App() {
   
   // Live location tracking
   const [isTracking, setIsTracking] = useState(false);
-  const [svgLocation, setSvgLocation] = useState(null);
-  const [heading, setHeading] = useState(0); // Add heading state
+  const [userLocation, setUserLocation] = useState(null); // { lat, lng }
+  const [heading, setHeading] = useState(0);
   const [trackingError, setTrackingError] = useState(null);
   
   const transformRef = useRef(null);
@@ -37,8 +36,7 @@ function App() {
         watchId = navigator.geolocation.watchPosition(
           (position) => {
             const { latitude, longitude, heading: currentHeading } = position.coords;
-            const newPos = latLngToSVG(latitude, longitude);
-            setSvgLocation(newPos);
+            setUserLocation({ lat: latitude, lng: longitude });
             
             // Only update heading if the API provides it (user is moving)
             if (currentHeading !== null && !isNaN(currentHeading)) {
@@ -46,11 +44,6 @@ function App() {
             }
             
             setTrackingError(null);
-            
-            // Re-center on user
-            if (transformRef.current) {
-              transformRef.current.setTransform(newPos.x, newPos.y, 2, 500);
-            }
           },
           (error) => {
             console.error(error);
@@ -64,7 +57,7 @@ function App() {
         setIsTracking(false);
       }
     } else {
-      setSvgLocation(null);
+      setUserLocation(null);
     }
 
     return () => {
@@ -79,8 +72,8 @@ function App() {
       
       let computedStartNode = startNode;
       // If tracking, use nearest node to current location instead of selected gate
-      if (isTracking && svgLocation) {
-        const nearest = findNearestNode(svgLocation.x, svgLocation.y);
+      if (isTracking && userLocation) {
+        const nearest = findNearestNode(userLocation.lat, userLocation.lng);
         if (nearest) {
           computedStartNode = nearest;
         }
@@ -90,26 +83,26 @@ function App() {
         const path = findShortestPath(computedStartNode, destination);
         
         // If tracking, prepend current live location to path
-        if (isTracking && svgLocation && path.length > 0) {
-          path.unshift({ ...svgLocation, type: 'live' });
+        if (isTracking && userLocation && path.length > 0) {
+          path.unshift({ lat: userLocation.lat, lng: userLocation.lng });
         }
         
         setPathNodes(path);
         
         // Zoom to destination block if not currently centering on user movement
         if (transformRef.current && path.length > 0 && !isTracking) {
-          transformRef.current.zoomToElement(`block-${destination}`, 2, 500);
+          transformRef.current.zoomToElement(destination);
         }
       }
     } else {
       setPathNodes([]);
     }
-  }, [selectedCourse, startNode, isTracking, svgLocation]);
+  }, [selectedCourse, startNode, isTracking, userLocation]);
 
   const handleRecenter = () => {
     if (transformRef.current) {
-      if (isTracking && svgLocation) {
-        transformRef.current.setTransform(svgLocation.x, svgLocation.y, 2, 500);
+      if (isTracking && userLocation) {
+        transformRef.current.flyToUser(userLocation.lat, userLocation.lng);
       } else {
         transformRef.current.resetTransform();
       }
@@ -146,7 +139,7 @@ function App() {
           pathNodes={pathNodes} 
           destinationBlock={selectedCourse?.block} 
           setTransformRef={transformRef}
-          svgLocation={svgLocation}
+          svgLocation={userLocation}
           heading={heading}
         />
       </div>
