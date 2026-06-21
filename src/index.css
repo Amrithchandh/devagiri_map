@@ -1,0 +1,455 @@
+@import url('https://fonts.googleapis.css2?family=Inter:wght@400;600;800&display=swap');
+
+:root {
+  --bg-color: #5d0f24; /* Reddish theme background */
+  --card-bg: #f8fafc;
+  --text-main: #334155;
+  --text-light: #64748b;
+  --accent-blue: #1e3a8a;
+  --accent-green: #166534;
+  --accent-orange: #c2410c;
+  --accent-red: #9f1239;
+  --border-radius: 16px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-color);
+  color: #fff;
+  overflow: hidden;
+  touch-action: none; /* prevent default scroll for map panning */
+}
+
+/* App Layout */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  position: relative;
+}
+
+/* Top Bar */
+.top-bar {
+  padding: 12px 16px;
+  background: linear-gradient(to bottom, rgba(93,15,36,0.9) 0%, rgba(93,15,36,0.7) 100%);
+  z-index: 10;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  backdrop-filter: blur(8px);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.logo-placeholder {
+  width: 32px;
+  height: 32px;
+  background: white;
+  border-radius: 50%;
+  margin-right: 12px;
+}
+
+.header h1 {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.start-selection {
+  display: flex;
+  align-items: center;
+  background: rgba(255,255,255,0.1);
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.start-selection .icon {
+  margin-right: 8px;
+}
+
+.start-selection .label {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  margin-right: auto;
+}
+
+.start-selection select {
+  background: white;
+  color: var(--text-main);
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  outline: none;
+}
+
+.quick-actions {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.icon-btn {
+  background: white;
+  color: var(--text-main);
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.9rem;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.icon-btn.active {
+  background: var(--accent-orange);
+  color: white;
+}
+
+.icon-btn.text-btn {
+  padding: 0 16px;
+  width: auto;
+}
+
+/* Map Area - FULL SCREEN like Google Maps */
+.map-area {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.map-wrapper {
+  width: 100%;
+  height: 100%;
+}
+
+.transform-wrapper {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.transform-content {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.campus-map {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Bottom Sheet */
+.bottom-sheet {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--card-bg);
+  color: var(--text-main);
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  padding: 16px;
+  box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
+  transform: translateY(calc(100% - 60px));
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  z-index: 20;
+}
+
+.bottom-sheet.expanded {
+  transform: translateY(0);
+}
+
+.drag-handle {
+  width: 100%;
+  height: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  cursor: pointer;
+  margin-top: -8px;
+}
+
+.drag-handle .bar {
+  width: 40px;
+  height: 4px;
+  background: #cbd5e1;
+  border-radius: 2px;
+}
+
+.type-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: 12px;
+  border: 2px solid var(--accent-red);
+  background: transparent;
+  color: var(--accent-red);
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggle-btn.active {
+  background: var(--accent-red);
+  color: white;
+}
+
+.search-section {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.search-section label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.search-section label span {
+  font-weight: normal;
+  color: var(--text-light);
+  font-size: 0.8rem;
+}
+
+.search-section input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1rem;
+  outline: none;
+}
+
+.search-section input:focus {
+  border-color: var(--accent-red);
+}
+
+.suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  max-height: 150px;
+  overflow-y: auto;
+  z-index: 30;
+  list-style: none;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.suggestions li {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.suggestions li:hover {
+  background: #f8fafc;
+}
+
+.suggestions li.empty {
+  color: var(--text-light);
+  font-style: italic;
+  cursor: default;
+}
+
+.destination-display {
+  background: #e2e8f0;
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 16px;
+  font-size: 1.1rem;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.primary-btn, .secondary-btn {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.primary-btn {
+  background: var(--accent-red);
+  color: white;
+}
+
+.secondary-btn {
+  background: #e2e8f0;
+  color: var(--text-main);
+}
+
+/* SVG Animations */
+@keyframes drawPath {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animated-path {
+  stroke-dasharray: 20;
+  animation: moveDash 1s linear infinite;
+}
+
+@keyframes moveDash {
+  to {
+    stroke-dashoffset: -40;
+  }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0.5; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.pulse-marker {
+  animation: pulse 1.5s infinite ease-in-out;
+  transform-origin: center;
+}
+
+/* Floating Action Button (FAB) for Location */
+.fab-location {
+  position: absolute;
+  right: 16px;
+  bottom: calc(100vh - 100% + 24px); /* Fallback */
+  width: 48px;
+  height: 48px;
+  border-radius: 24px;
+  background-color: white;
+  border: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-main);
+  cursor: pointer;
+  z-index: 15;
+  transition: all 0.3s ease;
+}
+
+/* Push FAB above bottom sheet on mobile */
+@media (max-width: 767px) {
+  .bottom-sheet.expanded ~ .map-area .fab-location {
+    bottom: 300px; /* Approximate height of expanded bottom sheet */
+  }
+  .fab-location {
+    bottom: 140px; /* Above collapsed bottom sheet */
+  }
+}
+
+@media (min-width: 768px) {
+  .fab-location {
+    bottom: 32px;
+    right: 32px;
+  }
+}
+
+.fab-location.tracking {
+  color: #3b82f6; /* Blue active state */
+}
+
+/* Toast Error */
+.toast-error {
+  position: absolute;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent-red);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  z-index: 50;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  pointer-events: none;
+}
+
+/* --- Desktop Layout (Google Maps style) --- */
+@media (min-width: 768px) {
+  .bottom-sheet {
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 380px;
+    height: 100vh;
+    transform: translateX(0) !important;
+    border-radius: 0;
+    box-shadow: 4px 0 12px rgba(0,0,0,0.15);
+    z-index: 30;
+    padding-top: 32px;
+    overflow-y: auto;
+  }
+  
+  .drag-handle {
+    display: none;
+  }
+  
+  .map-area {
+    left: 380px;
+    width: calc(100vw - 380px);
+  }
+  
+  .top-bar {
+    left: 380px;
+    width: calc(100vw - 380px);
+    background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 100%);
+    pointer-events: none;
+  }
+  
+  .top-bar * {
+    pointer-events: auto;
+  }
+  
+  .suggestions {
+    max-height: 400px;
+  }
+}
