@@ -65,6 +65,14 @@ function App() {
     };
   }, [isTracking]);
 
+  // Auto-dismiss tracking error after 4 seconds
+  useEffect(() => {
+    if (trackingError) {
+      const t = setTimeout(() => setTrackingError(null), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [trackingError]);
+
   // Update path when course is selected or when location changes
   useEffect(() => {
     if (selectedCourse) {
@@ -130,6 +138,40 @@ function App() {
     setSearchQuery(name);
   };
 
+  // ---- Location Permission Dialog ----
+  const [showPermDialog, setShowPermDialog] = useState(true);
+  const [permState, setPermState] = useState('idle'); // 'idle' | 'requesting' | 'granted' | 'denied' | 'skipped'
+
+  const handleAllowLocation = () => {
+    setPermState('requesting');
+    if (!('geolocation' in navigator)) {
+      setPermState('denied');
+      setTrackingError('Geolocation is not supported by your browser.');
+      setShowPermDialog(false);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      () => {
+        setPermState('granted');
+        setIsTracking(true);
+        setStartNode('');
+        setShowPermDialog(false);
+      },
+      (err) => {
+        console.error(err);
+        setPermState('denied');
+        setTrackingError('Location access denied. Using manual gate selection.');
+        setShowPermDialog(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const handleSkipLocation = () => {
+    setPermState('skipped');
+    setShowPermDialog(false);
+  };
+
   return (
     <div className="app-container">
       <TopBar startNode={startNode} setStartNode={setStartNode} onShortcut={handleShortcut} />
@@ -160,9 +202,10 @@ function App() {
       <button 
         className={`fab-location ${isTracking ? 'tracking' : ''}`}
         onClick={() => {
-          setIsTracking(!isTracking);
           if (!isTracking) {
-            setStartNode(''); 
+            handleAllowLocation();
+          } else {
+            setIsTracking(false);
           }
         }}
         title={isTracking ? "Stop Tracking" : "Locate Me"}
@@ -175,6 +218,57 @@ function App() {
       {trackingError && (
         <div className="toast-error">
           {trackingError}
+        </div>
+      )}
+
+      {/* Location Permission Dialog */}
+      {showPermDialog && (
+        <div className="perm-overlay">
+          <div className="perm-dialog">
+            <div className="perm-icon-ring">
+              <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path>
+                <path d="M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M19.07 4.93l-2.12 2.12M7.05 16.95l-2.12 2.12"></path>
+              </svg>
+            </div>
+            <h2 className="perm-title">Enable Live Location</h2>
+            <p className="perm-desc">
+              Allow <strong>Devagiri Navigator</strong> to access your live location to get real-time directions to any academic block on campus.
+            </p>
+            <div className="perm-features">
+              <div className="perm-feature">
+                <span className="perm-feature-icon">📍</span>
+                <span>See your real-time position on the map</span>
+              </div>
+              <div className="perm-feature">
+                <span className="perm-feature-icon">🧭</span>
+                <span>Get turn-by-turn campus directions</span>
+              </div>
+              <div className="perm-feature">
+                <span className="perm-feature-icon">🔒</span>
+                <span>Location is never stored or shared</span>
+              </div>
+            </div>
+            <div className="perm-actions">
+              <button 
+                className="perm-allow-btn" 
+                onClick={handleAllowLocation}
+                disabled={permState === 'requesting'}
+              >
+                {permState === 'requesting' ? (
+                  <span className="perm-loading">
+                    <span className="spinner"></span> Getting location...
+                  </span>
+                ) : (
+                  '📍 Allow Location Access'
+                )}
+              </button>
+              <button className="perm-skip-btn" onClick={handleSkipLocation}>
+                Skip, select gate manually
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

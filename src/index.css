@@ -26,6 +26,166 @@ body {
   overflow: hidden;
 }
 
+/* ===== Location Permission Dialog ===== */
+.perm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.35s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.perm-dialog {
+  background: #fff;
+  border-radius: 24px;
+  padding: 32px 24px 24px;
+  max-width: 380px;
+  width: 100%;
+  color: var(--text-main);
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.35);
+  animation: slideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes slideUp {
+  from { transform: translateY(60px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.perm-icon-ring {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #fde8ee 0%, #fce7f3 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  color: var(--accent-red);
+  border: 3px solid rgba(159, 18, 57, 0.15);
+}
+
+.perm-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 10px;
+}
+
+.perm-desc {
+  font-size: 0.92rem;
+  color: var(--text-light);
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.perm-desc strong {
+  color: var(--accent-red);
+}
+
+.perm-features {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.perm-feature {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.88rem;
+  color: var(--text-main);
+}
+
+.perm-feature-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.perm-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.perm-allow-btn {
+  background: var(--accent-red);
+  color: white;
+  border: none;
+  padding: 15px 20px;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(159, 18, 57, 0.35);
+}
+
+.perm-allow-btn:hover:not(:disabled) {
+  background: #881337;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(159, 18, 57, 0.45);
+}
+
+.perm-allow-btn:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+.perm-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2.5px solid rgba(255,255,255,0.35);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.perm-skip-btn {
+  background: transparent;
+  color: var(--text-light);
+  border: none;
+  padding: 10px;
+  font-size: 0.88rem;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+
+.perm-skip-btn:hover {
+  color: var(--text-main);
+}
+
+
+
 /* App Layout */
 .app-container {
   display: flex;
