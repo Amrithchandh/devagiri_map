@@ -31,30 +31,28 @@ export default function BottomSheet({
         <div className="bar"></div>
       </div>
       
-      <div className="type-toggle">
-        <button 
-          className={`toggle-btn ${courseType === 'Aided' ? 'active' : ''}`}
-          onClick={() => { setCourseType('Aided'); setSelectedCourse(null); setSearchQuery(''); }}
-        >
-          AIDED
-        </button>
-        <button 
-          className={`toggle-btn ${courseType === 'Self Financing' ? 'active' : ''}`}
-          onClick={() => { setCourseType('Self Financing'); setSelectedCourse(null); setSearchQuery(''); }}
-        >
-          SELF FINANCING
-        </button>
-      </div>
-
       <div className="search-section">
-        <label>Search Course: <span>eg. BSc Chemistry</span></label>
-        <input 
-          type="text" 
-          placeholder="Type to search..." 
-          value={searchQuery}
-          onChange={(e) => { setSearchQuery(e.target.value); setSelectedCourse(null); }}
-          onFocus={() => setIsExpanded(true)}
-        />
+        <div className="search-input-wrapper">
+          <input 
+            type="text" 
+            placeholder="Search Course (e.g. BSc Chemistry)..." 
+            value={searchQuery}
+            onChange={(e) => { setSearchQuery(e.target.value); setSelectedCourse(null); }}
+            onFocus={() => setIsExpanded(true)}
+          />
+          {searchQuery && (
+            <button 
+              className="clear-search-btn" 
+              onClick={() => {
+                onReset();
+                setIsExpanded(false);
+              }}
+              title="Clear search"
+            >
+              &times;
+            </button>
+          )}
+        </div>
         
         {searchQuery && !selectedCourse && (
           <ul className="suggestions">
@@ -70,6 +68,21 @@ export default function BottomSheet({
             {combinedResults.length === 0 && <li className="empty">No results found</li>}
           </ul>
         )}
+      </div>
+
+      <div className="type-toggle">
+        <button 
+          className={`toggle-btn ${courseType === 'Aided' ? 'active' : ''}`}
+          onClick={() => { setCourseType('Aided'); setSelectedCourse(null); setSearchQuery(''); }}
+        >
+          AIDED
+        </button>
+        <button 
+          className={`toggle-btn ${courseType === 'Self Financing' ? 'active' : ''}`}
+          onClick={() => { setCourseType('Self Financing'); setSelectedCourse(null); setSearchQuery(''); }}
+        >
+          SELF FINANCING
+        </button>
       </div>
 
       <div className="destination-display">
